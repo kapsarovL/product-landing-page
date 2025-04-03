@@ -2,6 +2,12 @@ import { pgTable, text, serial, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Define client environment schema for validation
+export const clientEnvSchema = z.object({
+  VITE_STRIPE_PUBLIC_KEY: z.string().optional(),
+  // Add any other client environment variables here
+});
+
 export const validateEnv = () => {
   const envSchema = z.object({
     DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),

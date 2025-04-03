@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useStripe, Elements, PaymentElement, useElements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
+import { useStripe, PaymentElement, useElements } from '@stripe/react-stripe-js';
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -9,6 +8,7 @@ import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { StripeProvider } from "@/components/StripeProvider";
 
 // Product data
 const products = {
@@ -25,12 +25,6 @@ const products = {
     description: "Complete premium bundle with charging pad and accessories"
   }
 };
-
-// Make sure to call `loadStripe` outside of a component's render to avoid
-// recreating the `Stripe` object on every render.
-const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY 
-  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
-  : null;
 
 const CheckoutForm = ({ product }) => {
   const stripe = useStripe();
@@ -53,41 +47,32 @@ const CheckoutForm = ({ product }) => {
       confirmParams: {
         return_url: window.location.origin,
       },
-      redirect: "if_required"
     });
 
     if (error) {
       toast({
-        title: "Payment Failed",
-        description: error.message || "An unexpected error occurred.",
+        title: "Payment Error",
+        description: error.message || "An unknown error occurred.",
         variant: "destructive",
       });
       setIsProcessing(false);
-    } else {
-      toast({
-        title: "Payment Successful",
-        description: "Thank you for your purchase!",
-      });
-      
-      // Go back to home page after successful payment
-      setTimeout(() => {
-        setLocation("/");
-      }, 2000);
     }
+    // Payment processing is handled by the return_url
   };
 
+  if (!stripe || !elements) {
+    return <div>Loading payment form...</div>;
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      <PaymentElement />
-      
-      <div className="space-y-4">
-        <div className="flex justify-between">
-          <span className="text-sm text-gray-500">Product</span>
-          <span className="font-medium">{product.name}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-sm text-gray-500">Amount</span>
-          <span className="font-medium">${product.amount.toFixed(2)}</span>
+    <form onSubmit={handleSubmit}>
+      <div className="mb-6 space-y-4">
+        <div className="rounded-md bg-gray-50 p-4">
+          <h3 className="font-medium">Order Summary</h3>
+          <div className="mt-2 flex justify-between">
+            <span>{product.name}</span>
+            <span>${product.amount.toFixed(2)}</span>
+          </div>
         </div>
         <div className="border-t pt-4">
           <div className="flex justify-between">
@@ -96,6 +81,8 @@ const CheckoutForm = ({ product }) => {
           </div>
         </div>
       </div>
+      
+      <PaymentElement className="mb-6" />
       
       <Button 
         disabled={!stripe || isProcessing} 
@@ -157,11 +144,7 @@ export default function Checkout() {
       }
     };
     
-    if (stripePromise) {
-      createPaymentIntent();
-    } else {
-      setError("Payment processing is currently unavailable. Please try again later.");
-    }
+    createPaymentIntent();
   }, [toast]);
 
   if (error) {
@@ -189,7 +172,7 @@ export default function Checkout() {
     );
   }
 
-  if (!product || !clientSecret || !stripePromise) {
+  if (!product || !clientSecret) {
     return (
       <>
         <Navbar />
@@ -214,9 +197,9 @@ export default function Checkout() {
             <CardDescription>{product.description}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
+            <StripeProvider options={{ clientSecret, appearance: { theme: 'stripe' } }}>
               <CheckoutForm product={product} />
-            </Elements>
+            </StripeProvider>
           </CardContent>
         </Card>
       </div>
