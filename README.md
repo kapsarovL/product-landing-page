@@ -77,3 +77,5 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 
 ## License
 This project is licensed under the [MIT License](./LICENSE). See the LICENSE file for details.
+
+[![Netlify Status](https://api.netlify.com/api/v1/badges/cf87fea3-ae69-46e0-a1c0-41c7e0e9bac9/deploy-status)](https://app.netlify.com/sites/echobeats-pro/deploys)

@@ -1,0 +1,31 @@
+[[plugins]]
+  package = "@netlify/plugin-lighthouse"
+
+  # optional, deploy the lighthouse report to a path under your site
+  [plugins.inputs.audits]
+    output_path = "reports/lighthouse.html"
+
+    [[plugins]]
+  package = "@netlify/plugin-lighthouse"
+
+  # Set the plugin to run prior to deploy, failing the build if minimum thresholds aren't set 
+  [plugins.inputs]
+    fail_deploy_on_score_thresholds = "true"
+
+  # Set minimum thresholds for each report area
+  [plugins.inputs.thresholds]
+    performance = 0.9
+    accessibility = 0.7
+
+  # to audit an HTML file other than index.html in the build directory
+  [[plugins.inputs.audits]]
+    path = "contact.html"
+
+  # to audit an HTML file other than index.html in a sub path of the build directory
+  [[plugins.inputs.audits]]
+    path = "pages/contact.html"
+
+  # to serve only a sub directory of the build directory for an audit
+  # pages/index.html will be audited, and files outside of this directory will not be served
+  [[plugins.inputs.audits]]
+    serveDir = "pages"
