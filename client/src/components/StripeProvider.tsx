@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { clientEnv } from "@/lib/env";
+import { StripeConfig } from './StripeConfig';
 
 // Only initialize Stripe once to avoid multiple network requests
 const _stripePromise = clientEnv.getStripeKey() ? 
@@ -16,6 +17,7 @@ interface StripeProviderProps {
       theme?: 'stripe' | 'night' | 'flat';
       variables?: Record<string, string>;
     };
+    paymentMethodOrder?: string[];
   };
 }
 
@@ -27,12 +29,22 @@ export const StripeProvider = ({ children, options }: StripeProviderProps) => {
     setIsMounted(true);
   }, []);
 
+  // Configure options with correct format for Stripe
+  const _configuredOptions = {
+    ...options || {},
+    // Set appearance settings
+    appearance: {
+      theme: 'stripe',
+      ...(options?.appearance || {})
+    }
+  };
+
   if (!_isMounted || !_stripePromise) {
     return null;
   }
 
   return (
-    <Elements stripe={_stripePromise} options={options || {}}>
+    <Elements stripe={_stripePromise} options={_configuredOptions}>
       {children}
     </Elements>
   );

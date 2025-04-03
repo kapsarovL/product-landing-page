@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { StripeProvider } from "@/components/StripeProvider";
+import { StripeConfig } from '@/components/StripeConfig';
 
 // Product data
 const products = {
@@ -30,7 +31,7 @@ const CheckoutForm = ({ product }) => {
   const stripe = useStripe();
   const elements = useElements();
   const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [_isProcessing, setIsProcessing] = useState(false);
   const [, setLocation] = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,11 +86,11 @@ const CheckoutForm = ({ product }) => {
       <PaymentElement className="mb-6" />
       
       <Button 
-        disabled={!stripe || isProcessing} 
+        disabled={!stripe || _isProcessing} 
         className="w-full" 
         type="submit"
       >
-        {isProcessing ? (
+        {_isProcessing ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Processing...
@@ -103,9 +104,9 @@ const CheckoutForm = ({ product }) => {
 };
 
 export default function Checkout() {
-  const [clientSecret, setClientSecret] = useState("");
-  const [product, setProduct] = useState(null);
-  const [error, setError] = useState("");
+  const [_clientSecret, setClientSecret] = useState("");
+  const [_product, setProduct] = useState(null);
+  const [_error, setError] = useState("");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   
@@ -147,7 +148,7 @@ export default function Checkout() {
     createPaymentIntent();
   }, [toast]);
 
-  if (error) {
+  if (_error) {
     return (
       <>
         <Navbar />
@@ -158,7 +159,7 @@ export default function Checkout() {
               <CardDescription>There was a problem with checkout</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-destructive">{error}</p>
+              <p className="text-destructive">{_error}</p>
             </CardContent>
             <CardFooter>
               <Button onClick={() => setLocation("/")} className="w-full">
@@ -172,7 +173,7 @@ export default function Checkout() {
     );
   }
 
-  if (!product || !clientSecret) {
+  if (!_product || !_clientSecret) {
     return (
       <>
         <Navbar />
@@ -194,12 +195,14 @@ export default function Checkout() {
         <Card>
           <CardHeader>
             <CardTitle>Complete Your Purchase</CardTitle>
-            <CardDescription>{product.description}</CardDescription>
+            <CardDescription>{_product.description}</CardDescription>
           </CardHeader>
           <CardContent>
-            <StripeProvider options={{ clientSecret, appearance: { theme: 'stripe' } }}>
-              <CheckoutForm product={product} />
-            </StripeProvider>
+            <StripeConfig>
+              <StripeProvider options={{ clientSecret: _clientSecret, appearance: { theme: 'stripe' } }}>
+                <CheckoutForm product={_product} />
+              </StripeProvider>
+            </StripeConfig>
           </CardContent>
         </Card>
       </div>

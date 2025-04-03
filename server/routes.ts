@@ -24,6 +24,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stripe domain verification endpoint for Apple Pay
+  app.post("/api/stripe/verify-domain", async (req, res) => {
+    if (!stripeConfig.isConfigured || !stripeConfig.stripe) {
+      return res.status(503).json({ 
+        success: false, 
+        message: "Payment processing is currently unavailable. Missing Stripe configuration." 
+      });
+    }
+
+    try {
+      const { domain } = req.body;
+      
+      if (!domain) {
+        return res.status(400).json({ success: false, message: "Domain is required" });
+      }
+      
+      // For localhost development, we use a special domain
+      const domainName = domain === 'localhost' ? 'localhost' : domain;
+      
+      // Register the domain with Stripe for Apple Pay
+      const domainVerification = await stripeConfig.stripe.applePayDomains.create({
+        domain_name: domainName,
+      });
+      
+      return res.status(200).json({ 
+        success: true, 
+        message: "Domain verified successfully", 
+        domain: domainVerification.domain_name 
+      });
+    } catch (error: any) {
+      console.error("Error verifying domain for Apple Pay:", error.message);
+      
+      // Check if this is already registered error
+      if (error.message && error.message.includes("already exists")) {
+        return res.status(200).json({ 
+          success: true, 
+          message: "Domain already verified", 
+        });
+      }
+      
+      return res.status(500).json({ 
+        success: false, 
+        message: "Failed to verify domain", 
+        error: error.message 
+      });
+    }
+  });
+
   // Stripe payment route
   app.post("/api/create-payment-intent", async (req, res) => {
     if (!stripeConfig.isConfigured || !stripeConfig.stripe) {
