@@ -5,9 +5,6 @@
   [plugins.inputs.audits]
     output_path = "reports/lighthouse.html"
 
-    [[plugins]]
-  package = "@netlify/plugin-lighthouse"
-
   # Set the plugin to run prior to deploy, failing the build if minimum thresholds aren't set 
   [plugins.inputs]
     fail_deploy_on_score_thresholds = "true"
@@ -29,3 +26,4 @@
   # pages/index.html will be audited, and files outside of this directory will not be served
   [[plugins.inputs.audits]]
     serveDir = "pages"
+
