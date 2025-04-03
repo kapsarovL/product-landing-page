@@ -8,6 +8,10 @@ import { createServer } from "http";
 import { pgTable, text, serial, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+var clientEnvSchema = z.object({
+  VITE_STRIPE_PUBLIC_KEY: z.string().optional()
+  // Add any other client environment variables here
+});
 var validateEnv = () => {
   const envSchema = z.object({
     DATABASE_URL: z.string().min(1, "DATABASE_URL is required")
