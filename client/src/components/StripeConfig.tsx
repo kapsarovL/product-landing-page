@@ -23,9 +23,12 @@ export const StripeConfig = ({ children }: StripeConfigProps) => {
         
         // Check if we're in a secure context (needed for Apple Pay)
         if (window.location.protocol === 'https:' || window.location.hostname === 'localhost') {
-          // Verify domain for Apple Pay
+          // Prepare clean domain name with no protocol, port, path
+          const _hostname = window.location.hostname;
+          
+          // Verify domain for Apple Pay - send only the hostname
           await apiRequest('POST', '/api/stripe/verify-domain', {
-            domain: window.location.hostname
+            domain: _hostname
           });
         }
       } catch (error) {

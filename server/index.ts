@@ -47,10 +47,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// Function to start the server with port fallback
-const startServer = async (preferredPort: number) => {
+// Function to start the server with port fallback - prioritizing port 3000
+const startServer = async () => {
   const server = createServer(app);
-  const ports = [preferredPort, 3000, 8080, 0]; // 0 means any available port
+  // Prioritize port 3000 to match Vite proxy configuration
+  const ports = [3000, 5000, 8080, 0]; // 0 means any available port
   const maxRetries = ports.length;
 
   const registerAllRoutes = async () => {
@@ -124,8 +125,7 @@ const startServer = async (preferredPort: number) => {
 // Start the server
 (async () => {
   try {
-    const preferredPort = 5000;
-    await startServer(preferredPort);
+    await startServer();
   } catch (err) {
     log(`Fatal error: ${(err as Error).message}`);
     process.exit(1);
