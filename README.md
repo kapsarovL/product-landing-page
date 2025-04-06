@@ -1,3 +1,5 @@
+![Product Image](echobeats.png)
+
 # Product Landing Page
 
 ## Overview
