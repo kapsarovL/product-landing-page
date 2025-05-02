@@ -196,6 +196,9 @@ var stripeConfig = new StripeConfig();
 import { z as z2 } from "zod";
 import { fromZodError } from "zod-validation-error";
 async function registerRoutes(app2) {
+  app2.get("/api/health", (req, res) => {
+    res.json({ status: "API is running", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+  });
   app2.post("/api/subscribe", async (req, res) => {
     try {
       const validatedData = insertSubscriberSchema.parse(req.body);
@@ -211,7 +214,7 @@ async function registerRoutes(app2) {
       }
     }
   });
-  app2.post("/api/create-payment-intent", async (req, res) => {
+  app2.post("/api/stripe/verify-domain", async (req, res) => {
     if (!stripeConfig.isConfigured || !stripeConfig.stripe) {
       return res.status(503).json({
         success: false,
@@ -219,6 +222,55 @@ async function registerRoutes(app2) {
       });
     }
     try {
+      const { domain } = req.body;
+      if (!domain) {
+        return res.status(400).json({ success: false, message: "Domain is required" });
+      }
+      let _domainName = domain;
+      if (_domainName === "localhost") {
+        _domainName = "localhost";
+      } else {
+        _domainName = _domainName.replace(/^https?:\/\//, "");
+        _domainName = _domainName.split(":")[0];
+        _domainName = _domainName.split("/")[0];
+        _domainName = _domainName.split("?")[0];
+        _domainName = _domainName.split("#")[0];
+      }
+      console.log(`\u{1F512} Registering domain for Apple Pay: ${_domainName}`);
+      const domainVerification = await stripeConfig.stripe.applePayDomains.create({
+        domain_name: _domainName
+      });
+      return res.status(200).json({
+        success: true,
+        message: "Domain verified successfully",
+        domain: domainVerification.domain_name
+      });
+    } catch (error) {
+      console.error("Error verifying domain for Apple Pay:", error.message);
+      if (error.message && error.message.includes("already exists")) {
+        return res.status(200).json({
+          success: true,
+          message: "Domain already verified"
+        });
+      }
+      return res.status(500).json({
+        success: false,
+        message: "Failed to verify domain",
+        error: error.message
+      });
+    }
+  });
+  app2.post("/api/create-payment-intent", async (req, res) => {
+    console.log("\u26A1 Received payment intent request:", req.path);
+    if (!stripeConfig.isConfigured || !stripeConfig.stripe) {
+      console.error("\u274C Stripe not configured. Check STRIPE_SECRET_KEY environment variable.");
+      return res.status(503).json({
+        success: false,
+        message: "Payment processing is currently unavailable. Missing Stripe configuration."
+      });
+    }
+    try {
+      console.log("\u{1F4E6} Request body:", JSON.stringify(req.body));
       const { productId, productName, amount, currency = "usd", customerEmail } = req.body;
       const validatedData = insertOrderSchema.parse({
         productId,
@@ -227,7 +279,9 @@ async function registerRoutes(app2) {
         currency,
         customerEmail
       });
+      console.log("\u2713 Data validation passed");
       const order = await storage.createOrder(validatedData);
+      console.log("\u{1F4DD} Order created:", order.id);
       const paymentIntent = await stripeConfig.stripe.paymentIntents.create({
         amount: Math.round(amount * 100),
         // Convert to cents
@@ -238,12 +292,15 @@ async function registerRoutes(app2) {
           productName
         }
       });
+      console.log("\u{1F4B0} Stripe payment intent created:", paymentIntent.id);
       await storage.updateOrderStatus(order.id, "pending", paymentIntent.id);
+      console.log("\u2705 Returning client secret to frontend");
       res.json({
         clientSecret: paymentIntent.client_secret,
         orderId: order.id
       });
     } catch (error) {
+      console.error("\u274C Error in payment intent creation:", error);
       if (error instanceof z2.ZodError) {
         const validationError = fromZodError(error);
         res.status(400).json({ success: false, message: validationError.message });
@@ -251,7 +308,8 @@ async function registerRoutes(app2) {
         console.error("Error creating payment intent:", error);
         res.status(500).json({
           success: false,
-          message: "Failed to create payment intent"
+          message: "Failed to create payment intent",
+          error: error instanceof Error ? error.message : String(error)
         });
       }
     }
@@ -423,9 +481,9 @@ app.use((req, res, next) => {
   });
   next();
 });
-var startServer = async (preferredPort) => {
+var startServer = async () => {
   const server = createServer2(app);
-  const ports = [preferredPort, 3e3, 8080, 0];
+  const ports = [3e3, 5e3, 8080, 0];
   const maxRetries = ports.length;
   const registerAllRoutes = async () => {
     await registerRoutes(app);
@@ -484,8 +542,7 @@ var startServer = async (preferredPort) => {
 };
 (async () => {
   try {
-    const preferredPort = 5e3;
-    await startServer(preferredPort);
+    await startServer();
   } catch (err) {
     log(`Fatal error: ${err.message}`);
     process.exit(1);
